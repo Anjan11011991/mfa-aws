@@ -31,7 +31,7 @@ jobs:
         aws configure set aws_secret_access_key ${{ github.event.inputs.aws_secret_access_key }}
         aws configure set region us-east-1  # Modify as needed
 
-    - name: Request MFA code (manual input handled through inputs)
+    - name: Check if MFA code is passed
       run: |
         MFA_CODE="${{ github.event.inputs.mfa_code }}"
         
@@ -52,7 +52,7 @@ jobs:
         echo "Using MFA ARN: $MFA_ARN"
         echo "Using MFA Code: $MFA_CODE"
         
-        # Run the get-session-token command with the --debug flag to help diagnose the issue
+        # Run the get-session-token command with --debug for more details
         aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json --debug > session.json
         
         # Check if the session was successfully created
