@@ -29,28 +29,30 @@ jobs:
       run: |
         aws configure set aws_access_key_id ${{ github.event.inputs.aws_access_key_id }}
         aws configure set aws_secret_access_key ${{ github.event.inputs.aws_secret_access_key }}
-        aws configure set region us-east-1  # You can modify the region as needed
+        aws configure set region us-east-1  # Modify as needed
 
     - name: Request MFA code (manual input handled through inputs)
       run: |
-        MFA_CODE=${{ github.event.inputs.mfa_code }}
-        echo "Using MFA Code: $MFA_CODE"
+        MFA_CODE="${{ github.event.inputs.mfa_code }}"
         
-        # Debugging step: Ensure MFA code is correctly passed
+        # Debugging: Print the MFA code to ensure it's passed correctly (Do not print in production)
+        echo "MFA Code: $MFA_CODE"
+        
+        # Check if MFA_CODE is empty
         if [ -z "$MFA_CODE" ]; then
-          echo "Error: MFA code is not provided."
+          echo "Error: MFA code is not provided or is empty."
           exit 1
         fi
     
     - name: Perform AWS authentication with MFA
       run: |
-        # Replace 'arn:aws:iam::account-id:mfa/your-mfa-device' with your actual ARN
-        MFA_ARN="arn:aws:iam::975049994612:mfa/MS"
+        MFA_ARN="arn:aws:iam::975049994612:mfa/MS"  # Replace with your actual ARN
         
         # Running the get-session-token command with MFA
+        echo "Requesting session token with MFA..."
         aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json > session.json
         
-        # Check if the session was created
+        # Check if the session was successfully created
         if [ $? -ne 0 ]; then
           echo "Error: Failed to get session token."
           exit 1
@@ -60,7 +62,7 @@ jobs:
         export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId session.json)
         export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey session.json)
         export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken session.json)
-        
+    
     - name: List Lambda Functions
       run: |
         echo "Listing Lambda functions in AWS..."
