@@ -45,7 +45,7 @@ jobs:
     - name: Perform AWS authentication with MFA
       run: |
         # Replace 'arn:aws:iam::account-id:mfa/your-mfa-device' with your actual ARN
-        MFA_ARN="arn:aws:iam::account-id:mfa/your-mfa-device"
+        MFA_ARN="arn:aws:iam::975049994612:mfa/MS"
         
         # Running the get-session-token command with MFA
         aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json > session.json
