@@ -35,7 +35,7 @@ jobs:
       run: |
         MFA_CODE="${{ github.event.inputs.mfa_code }}"
         
-        # Debugging: Print the MFA code to ensure it's passed correctly (Do not print in production)
+        # Debugging: Ensure MFA code is passed correctly
         echo "MFA Code: $MFA_CODE"
         
         # Check if MFA_CODE is empty
@@ -48,9 +48,12 @@ jobs:
       run: |
         MFA_ARN="arn:aws:iam::975049994612:mfa/MS"  # Replace with your actual ARN
         
-        # Running the get-session-token command with MFA
-        echo "Requesting session token with MFA..."
-        aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json > session.json
+        # Debugging: Print the MFA ARN and MFA code being passed
+        echo "Using MFA ARN: $MFA_ARN"
+        echo "Using MFA Code: $MFA_CODE"
+        
+        # Run the get-session-token command with the --debug flag to help diagnose the issue
+        aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json --debug > session.json
         
         # Check if the session was successfully created
         if [ $? -ne 0 ]; then
