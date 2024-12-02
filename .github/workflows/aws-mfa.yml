@@ -1,24 +1,15 @@
-name: AWS Lambda Listing Workflow
+name: AWS Deployment Workflow
 
 on:
-  workflow_dispatch:  # Allow manual trigger with inputs for credentials and MFA
+  workflow_dispatch:  # Allow manual trigger from 'productionmain'
     inputs:
       branch:
         description: 'The source branch for deployment'
         required: true
         default: 'main'
-      aws_access_key_id:
-        description: 'AWS Access Key ID'
-        required: true
-      aws_secret_access_key:
-        description: 'AWS Secret Access Key'
-        required: true
-      mfa_code:
-        description: 'MFA code from your device'
-        required: true
 
 jobs:
-  list-lambda-functions:
+  deploy:
     runs-on: ubuntu-latest
     
     steps:
@@ -27,46 +18,23 @@ jobs:
     
     - name: Set up AWS CLI
       run: |
-        aws configure set aws_access_key_id ${{ github.event.inputs.aws_access_key_id }}
-        aws configure set aws_secret_access_key ${{ github.event.inputs.aws_secret_access_key }}
-        aws configure set region us-east-1  # Modify as needed
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region ap-south-1
 
-    - name: Check if MFA code is passed
+    - name: Request MFA code
       run: |
-        MFA_CODE="${{ github.event.inputs.mfa_code }}"
-        
-        # Debugging: Ensure MFA code is passed correctly
-        echo "MFA Code: $MFA_CODE"
-        
-        # Check if MFA_CODE is empty
-        if [ -z "$MFA_CODE" ]; then
-          echo "Error: MFA code is not provided or is empty."
-          exit 1
-        fi
+        echo "Please enter your MFA code"
+        read MFA_CODE
+        export MFA_CODE=$MFA_CODE
     
-    - name: Perform AWS authentication with MFA
+    - name: Perform AWS deployment (with MFA)
       run: |
-        MFA_ARN="arn:aws:iam::975049994612:mfa/MS"  # Replace with your actual ARN
-        
-        # Debugging: Print the MFA ARN and MFA code being passed
-        echo "Using MFA ARN: $MFA_ARN"
-        echo "Using MFA Code: $MFA_CODE"
-        
-        # Run the get-session-token command with --debug for more details
-        aws sts get-session-token --serial-number $MFA_ARN --token-code $MFA_CODE --output json --debug > session.json
-        
-        # Check if the session was successfully created
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to get session token."
-          exit 1
-        fi
-        
-        # Parse the session JSON response to get temporary credentials
+        aws sts get-session-token --serial-number arn:aws:iam::account-id:mfa/your-mfa-device --token-code $MFA_CODE --output json > session.json
         export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId session.json)
         export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey session.json)
         export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken session.json)
-    
-    - name: List Lambda Functions
-      run: |
+        
+        # Now perform the actual deployment (e.g., push to S3, deploy Lambda, etc.)
         echo "Listing Lambda functions in AWS..."
         aws lambda list-functions --output table
